@@ -15,8 +15,9 @@ channel_parser = reqparse.RequestParser()
 channel_parser.add_argument("channel", required=True)
 
 channel_fields = {"_id": fields.String, "name": fields.String,
-                  "description": fields.String,
-                  "uri": fields.Url('channel'), "date": fields.DateTime}
+                  "description": fields.String, "updated_at": fields.DateTime,
+                  "uri": fields.Url('channel'), "created_at": fields.DateTime,
+                  "users_id": fields.List(fields.String)}
 
 
 class ChannelListAPI(Resource):
@@ -43,7 +44,8 @@ class ChannelListAPI(Resource):
     def post(self):
         args = self.reqparse.parse_args()
         new_channel = {"name": args["name"], "description": args["description"],
-                   "date": datetime.now(), "users_sub": []}
+                   "created_at": datetime.now(), "updated_at": datetime.now(),
+                   "users_id": []}
         MONGO.db.channels.insert_one(new_channel)
         _last_added = MONGO.db.channels.find().sort([("$natural", -1)]).limit(1)
         last_added = [channel for channel in _last_added]
@@ -81,9 +83,11 @@ class ChannelAPI(Resource):
         args = self.reqparse.parse_args()
         MONGO.db.channels.update(
                                   { "_id": obj_id },
-                                  {
+                                  {"$set": {
                                      "name": args["name"],
                                      "description": args["description"],
+                                     "updated_at": datetime.now()
+                                     }
                                   }
                                 )
         channel = MONGO.db.channels.find_one_or_404({"_id": obj_id})
