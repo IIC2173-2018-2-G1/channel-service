@@ -15,8 +15,9 @@ channel_parser = reqparse.RequestParser()
 channel_parser.add_argument("channel", required=True)
 
 channel_fields = {"_id": fields.String, "name": fields.String,
-                  "description": fields.String, "users_sub": fields.List,
-                  "uri": fields.Url('channel'), "date": fields.DateTime}
+                  "description": fields.String, "updated_at": fields.DateTime,
+                  "uri": fields.Url('channel'), "created_at": fields.DateTime,
+                  "users_id": fields.List(fields.String)}
 
 
 class ChannelListAPI(Resource):
@@ -26,9 +27,11 @@ class ChannelListAPI(Resource):
                                    help="No channel name provided",
                                    location="json")
 
+
         self.reqparse.add_argument("description", type=str, required=True,
                                    help="No channel description provided",
                                    location="json")
+
 
         super(ChannelListAPI, self).__init__()
 
@@ -41,7 +44,8 @@ class ChannelListAPI(Resource):
     def post(self):
         args = self.reqparse.parse_args()
         new_channel = {"name": args["name"], "description": args["description"],
-                   "date": datetime.now()}
+                   "created_at": datetime.now(), "updated_at": datetime.now(),
+                   "users_id": []}
         MONGO.db.channels.insert_one(new_channel)
         _last_added = MONGO.db.channels.find().sort([("$natural", -1)]).limit(1)
         last_added = [channel for channel in _last_added]
@@ -69,20 +73,24 @@ class ChannelAPI(Resource):
 
         super(ChannelAPI, self).__init__()
 
-    def get(self, id):
-        channel = MONGO.db.channels.find_one_or_404({"_id": id})
+    def get(self, _id):
+        obj_id = ObjectId(_id)
+        channel = MONGO.db.channels.find_one_or_404({"_id": obj_id})
         return {"channel": marshal(channel, channel_fields)}
 
-    def put(self, id):
-        channel = MONGO.db.channels.find_one_or_404({"_id": id})
+    def put(self, _id):
+        obj_id = ObjectId(_id)
         args = self.reqparse.parse_args()
         MONGO.db.channels.update(
-                                  { "_id": id },
-                                  {
+                                  { "_id": obj_id },
+                                  {"$set": {
                                      "name": args["name"],
                                      "description": args["description"],
+                                     "updated_at": datetime.now()
+                                     }
                                   }
                                 )
+        channel = MONGO.db.channels.find_one_or_404({"_id": obj_id})
         return {'channel': marshal(channel, channel_fields)}
 
 
