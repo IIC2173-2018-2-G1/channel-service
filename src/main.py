@@ -74,7 +74,8 @@ class ChannelAPI(Resource):
         return {"channel": marshal(channel, channel_fields)}
 
     def put(self, id):
-        channel = MONGO.db.channels.find_one_or_404({"_id": id})
+        obj_id = ObjectId(id)
+        channel = MONGO.db.channels.find_one_or_404({"_id": obj_id})
         args = self.reqparse.parse_args()
         MONGO.db.channels.update(
                                   { "_id": id },
