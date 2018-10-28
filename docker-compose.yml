@@ -1,0 +1,14 @@
+version: "3.5"
+services:
+  app:
+    container_name: channel-service
+    build: .
+    ports:
+      - "5000:5000"
+    links:
+      - db
+    environment:
+    - DB=mongodb://db:27017/mongodb
+  db:
+    container_name: mongodb
+    image: mongo:latest
