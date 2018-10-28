@@ -4,6 +4,8 @@ from flask import Flask
 from flask_restful import Api
 from flask_pymongo import PyMongo
 from flask_restful import (Resource, reqparse, fields, marshal)
+from bson import ObjectId
+
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = os.environ.get("DB")
@@ -78,9 +80,13 @@ class ChannelAPI(Resource):
         if len(channel) == 0:
             abort(404)
         args = self.reqparse.parse_args()
-        for k, v in args.items():
-            if v is not None:
-                channel[k] = v
+        MONGO.db.channels.update(
+                                  { _id: "id" },
+                                  {
+                                     name: args["name"],
+                                     description: args["description"],
+                                  }
+                                )
         return {'channel': marshal(channel, channel_fields)}
 
 
@@ -88,7 +94,7 @@ api = Api(app)
 
 # add api resources
 api.add_resource(ChannelListAPI, "/api/v1.0/channels", endpoint="channels")
-api.add_resource(ChannelAPI, "/api/v1.0/channels/<int:id>", endpoint="<int:id>")
+api.add_resource(ChannelAPI, "/api/v1.0/channels/<string:_id>", endpoint="<int:id>")
 
 if __name__ == "__main__":
     app.run(debug=True)
