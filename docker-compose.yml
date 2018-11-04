@@ -9,6 +9,6 @@ services:
       - db
     environment:
     - DB=mongodb://db:27017/mongodb
-  db:
-    container_name: mongodb
-    image: mongo:latest
+  # db:
+  #   container_name: mongodb
+  #   image: mongo:latest
