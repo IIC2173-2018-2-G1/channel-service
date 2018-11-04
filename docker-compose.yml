@@ -4,7 +4,7 @@ services:
     container_name: channel-service
     build: .
     ports:
-      - "5000:5000"
+      - "8084:8084"
     links:
       - db
     environment:

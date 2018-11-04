@@ -15,5 +15,5 @@ ENV FLASK_APP service.py
 RUN chown -R app:app ./ 
 USER app
 
-EXPOSE 5000
-CMD ["gunicorn", "-b", ":5000", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]
+EXPOSE 8084
+CMD ["gunicorn", "-b", ":8084", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]
