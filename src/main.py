@@ -109,8 +109,8 @@ class ChannelAPI(Resource):
 api = Api(app)
 
 # add api resources
-api.add_resource(ChannelListAPI, "/api/v1.0/channels", endpoint="channels")
-api.add_resource(ChannelAPI, "/api/v1.0/channels/<string:_id>",
+api.add_resource(ChannelListAPI, "/", endpoint="channels")
+api.add_resource(ChannelAPI, "/<string:_id>",
                  endpoint="channel")
 
 if __name__ == "__main__":
