@@ -58,7 +58,7 @@ class ChannelListAPI(Resource):
                            "updated_at": datetime.now()}
                           #  "users_id": [user_id]}
             MONGO.db.channels.insert_one(new_channel)
-            _last_added = MONGO.db.channels.find().sort([("$natural", -1)]).limit(1)
+            _last_added = list(MONGO.db.channels.find().sort([("$natural", -1)]).limit(1))[0]
             return {'channel': marshal(_last_added, channel_fields)}, 201
         else:
             abort(403, 'Channel name already in use')
