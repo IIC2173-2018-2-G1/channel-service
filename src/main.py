@@ -23,8 +23,8 @@ channel_fields = {"_id": fields.String, "name": fields.String,
 
 # def get_user_id():
 #     try:
-#         json_obj = json.loads(request.headers.get('current-user')[17:])
-#         return json_obj["user"]["_id"]
+#         json_obj = json.loads(request.headers.get('current-user'))
+#         return json_obj["_id"]
 #     except Exception as e:
 #         return None
 
@@ -51,8 +51,7 @@ class ChannelListAPI(Resource):
     def post(self):
         args = self.reqparse.parse_args()
         # user_id = get_user_id()
-        name = args["name"]
-        if len(MONGO.db.channels.find({"name":name})) == 0:
+        if (MONGO.db.channels.find({"name": args["name"]}).count()) == 0:
             new_channel = {"name": args["name"],
                            "description": args["description"],
                            "created_at": datetime.now(),
@@ -62,7 +61,7 @@ class ChannelListAPI(Resource):
             _last_added = MONGO.db.channels.find().sort([("$natural", -1)]).limit(1)
             return {'channel': marshal(_last_added, channel_fields)}, 201
         else:
-            return "Name already in use"
+            abort(403, 'Channel name already in use')
 
 
 class ChannelAPI(Resource):
