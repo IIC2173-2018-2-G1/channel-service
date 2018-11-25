@@ -15,18 +15,12 @@ MONGO = PyMongo(app)
 channel_parser = reqparse.RequestParser()
 channel_parser.add_argument("channel", required=True)
 
-channel_fields = {"_id": fields.String, "name": fields.String,
-                  "description": fields.String, "updated_at": fields.DateTime,
-                  "uri": fields.Url('channel'), "created_at": fields.DateTime}
-                  # "users_id": fields.List(fields.String)}
+channel_fields = {"id": fields.String, "name": fields.String,
+                  "description": fields.String}
 
 
-# def get_user_id():
-#     try:
-#         json_obj = json.loads(request.headers.get('current-user'))
-#         return json_obj["_id"]
-#     except Exception as e:
-#         return None
+def marshal_channel(channel):
+    return {"id": str(channel["_id"]), "name": channel["name"], "description": channel["description"]}
 
 
 class ChannelListAPI(Resource):
@@ -38,28 +32,23 @@ class ChannelListAPI(Resource):
         self.reqparse.add_argument("description", type=str, required=True,
                                    help="No channel description provided",
                                    location="json")
-        # self.reqparse.add_argument("current-user", required=True,
-        #                            help="No user provided", location="headers")
         super(ChannelListAPI, self).__init__()
 
     def get(self):
         _data = MONGO.db.channels.find()
-        channels_found = [channel for channel in _data]
-        return {'channels': [marshal(channel, channel_fields)
-                             for channel in channels_found]}
+        return [marshal_channel(channel) for channel in _data]
 
     def post(self):
         args = self.reqparse.parse_args()
-        # user_id = get_user_id()
         if (MONGO.db.channels.find({"name": args["name"]}).count()) == 0:
             new_channel = {"name": args["name"],
                            "description": args["description"],
                            "created_at": datetime.now(),
                            "updated_at": datetime.now()}
-                          #  "users_id": [user_id]}
             MONGO.db.channels.insert_one(new_channel)
-            _last_added = list(MONGO.db.channels.find().sort([("$natural", -1)]).limit(1))[0]
-            return {'channel': marshal(_last_added, channel_fields)}, 201
+            _last_added = list(MONGO.db.channels.find().sort(
+                [("$natural", -1)]).limit(1))[0]
+            return marshal_channel(_last_added), 201
         else:
             abort(403, 'Channel name already in use')
 
@@ -68,44 +57,35 @@ class ChannelAPI(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument(
-            "name",
+            "action",
             type=str,
             required=True,
-            help="No channel name provided",
+            help="No action provided",
             location="json",
         )
-        self.reqparse.add_argument(
-            "description",
-            type=str,
-            required=True,
-            help="No channel description provided",
-            location="json",
-        )
-        # self.reqparse.add_argument("current-user", required=True,
-        #                            help="No user provided", location="headers")
-
         super(ChannelAPI, self).__init__()
 
     def get(self, _id):
         obj_id = ObjectId(_id)
-        # channel = MONGO.db.channels.find_one_or_404({"_id": obj_id})
-        # if get_user_id() not in channel["users_id"]:
-        #     abort(401)
         channel = MONGO.db.channels.find_one_or_404({"_id": obj_id})
-        return {"channel": marshal(channel, channel_fields)}
+        return marshal_channel(channel)
 
     def put(self, _id):
         obj_id = ObjectId(_id)
-        args = self.reqparse.parse_args()
-        # channel = MONGO.db.channels.find_one_or_404({"_id": obj_id})
-        # if get_user_id() not in channel["users_id"]:
-        #     abort(401)
-        MONGO.db.channels.update({"_id": obj_id},
-                                 {"$set": {"name": args["name"],
-                                           "description": args["description"],
-                                           "updated_at": datetime.now()}})
-        channel = MONGO.db.channels.find_one_or_404({"_id": obj_id})
-        return {'channel': marshal(channel, channel_fields)}
+        MONGO.db.channels.find_one_or_404({"_id": obj_id})
+        
+        user_id = request.headers.get("X-User-ID")
+        action = self.reqparse.parse_args()["action"]
+        data = {"channel_id": _id, "user_id": user_id}
+        if action == "subscribe":
+            MONGO.db.subscriptions.update(data, data, upsert=True)
+            return "", 204
+        elif action == "unsubscribe":
+            MONGO.db.subscriptions.delete_one(data)
+            return "", 204            
+        else:
+            return abort(400, 'Invalid action')
+
 
 api = Api(app)
 
